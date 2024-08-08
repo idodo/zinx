@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net"
+	"net/http"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -660,5 +661,13 @@ func (s *KcpConnection) InvokeCloseCallbacks() {
 
 //   // ... Additional initialization specific to KCP ...
 
-//   return c
-// }
+//	  return c
+//	}
+func (s *KcpConnection) GetRequest() *http.Request {
+	panic("not implemented")
+}
+
+func (s *KcpConnection) SendTextMessage(data []byte) error{
+	panic("not implemented")
+}
+

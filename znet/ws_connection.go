@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -106,13 +107,16 @@ type WsConnection struct {
 
 	// Close callback mutex
 	closeCallbackMutex sync.RWMutex
+
+	//auth request
+	req *http.Request
 }
 
 // newServerConn: for Server, a method to create a connection with Server characteristics
 // Note: The name has been changed from NewConnection
 // (newServerConn :for Server, 创建一个Server服务端特性的连接的方法
 // Note: 名字由 NewConnection 更变)
-func newWebsocketConn(server ziface.IServer, conn *websocket.Conn, connID uint64) ziface.IConnection {
+func newWebsocketConn(server ziface.IServer, conn *websocket.Conn, connID uint64, authReq *http.Request) ziface.IConnection {
 	// Initialize Conn properties (初始化Conn属性)
 	c := &WsConnection{
 		conn:        conn,
@@ -124,6 +128,7 @@ func newWebsocketConn(server ziface.IServer, conn *websocket.Conn, connID uint64
 		name:        server.ServerName(),
 		localAddr:   conn.LocalAddr().String(),
 		remoteAddr:  conn.RemoteAddr().String(),
+		req:         authReq,
 	}
 
 	lengthField := server.GetLengthField()
@@ -345,6 +350,22 @@ func (c *WsConnection) Send(data []byte) error {
 	}
 
 	err := c.conn.WriteMessage(websocket.BinaryMessage, data)
+	if err != nil {
+		zlog.Ins().ErrorF("SendMsg err data = %+v, err = %+v", data, err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *WsConnection) SendTextMessage(data []byte) error {
+	c.msgLock.RLock()
+	defer c.msgLock.RUnlock()
+	if c.isClosed == true {
+		return errors.New("WsConnection closed when send msg")
+	}
+
+	err := c.conn.WriteMessage(websocket.TextMessage, data)
 	if err != nil {
 		zlog.Ins().ErrorF("SendMsg err data = %+v, err = %+v", data, err)
 		return err
@@ -607,4 +628,7 @@ func (s *WsConnection) InvokeCloseCallbacks() {
 	s.closeCallbackMutex.RLock()
 	defer s.closeCallbackMutex.RUnlock()
 	s.closeCallback.Invoke()
+}
+func (s *WsConnection) GetRequest() *http.Request {
+	return s.req
 }

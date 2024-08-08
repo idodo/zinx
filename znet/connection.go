@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net"
+	"net/http"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -593,4 +594,12 @@ func (s *Connection) InvokeCloseCallbacks() {
 	s.closeCallbackMutex.RLock()
 	defer s.closeCallbackMutex.RUnlock()
 	s.closeCallback.Invoke()
+}
+
+func (s *Connection) GetRequest() *http.Request {
+	panic("not implemented")
+}
+
+func (s *Connection) SendTextMessage(data []byte) error{
+	panic("not implemented")
 }

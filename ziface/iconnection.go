@@ -6,6 +6,7 @@ package ziface
 import (
 	"context"
 	"net"
+	"net/http"
 
 	"github.com/gorilla/websocket"
 )
@@ -38,6 +39,7 @@ type IConnection interface {
 	RemoteAddrString() string   // Get the remote address information of the connection as a string
 
 	Send(data []byte) error        // Send data directly to the remote TCP client (without buffering)
+	SendTextMessage(data []byte) error  // WebSocket Send text message directly
 	SendToQueue(data []byte) error // Send data to the message queue to be sent to the remote TCP client later
 
 	// Send Message data directly to the remote TCP client (without buffering)
@@ -56,5 +58,7 @@ type IConnection interface {
 
 	AddCloseCallback(handler, key interface{}, callback func()) // Add a close callback function (添加关闭回调函数)
 	RemoveCloseCallback(handler, key interface{})               // Remove a close callback function (删除关闭回调函数)
-	InvokeCloseCallbacks()                                      // Trigger the close callback function (触发关闭回调函数，独立协程完成)
+	InvokeCloseCallbacks()
+	// Trigger the close callback function (触发关闭回调函数，独立协程完成)
+	GetRequest() *http.Request
 }
