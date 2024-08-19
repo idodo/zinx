@@ -30,7 +30,7 @@ func NoPoll4(request ziface.IRequest) {
 
 func main() {
 
-	// 开启 Request 对象池模式
+	// 关闭 Request 对象池模式
 	server := znet.NewUserConfServer(&zconf.Config{RouterSlicesMode: true, TCPPort: 8999, Host: "127.0.0.1", RequestPoolMode: false})
 	server.AddRouterSlices(1, NoPoll1)
 	server.AddRouterSlices(2, NoPoll4)

@@ -55,7 +55,7 @@ type WsConnection struct {
 
 	// msgLock is used for locking when users send and receive messages.
 	// (用户收发消息的Lock)
-	msgLock sync.RWMutex
+	msgLock sync.Mutex
 
 	// property is the connection attribute. (链接属性)
 	property map[string]interface{}
@@ -343,8 +343,8 @@ func (c *WsConnection) LocalAddr() net.Addr {
 }
 
 func (c *WsConnection) Send(data []byte) error {
-	c.msgLock.RLock()
-	defer c.msgLock.RUnlock()
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 	if c.isClosed == true {
 		return errors.New("WsConnection closed when send msg")
 	}
@@ -375,8 +375,8 @@ func (c *WsConnection) SendTextMessage(data []byte) error {
 }
 
 func (c *WsConnection) SendToQueue(data []byte) error {
-	c.msgLock.RLock()
-	defer c.msgLock.RUnlock()
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 
 	if c.msgBuffChan == nil {
 		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
@@ -410,8 +410,8 @@ func (c *WsConnection) SendToQueue(data []byte) error {
 // SendMsg directly sends the Message data to the remote TCP client.
 // (直接将Message数据发送数据给远程的TCP客户端)
 func (c *WsConnection) SendMsg(msgID uint32, data []byte) error {
-	c.msgLock.RLock()
-	defer c.msgLock.RUnlock()
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 	if c.isClosed == true {
 		return errors.New("WsConnection closed when send msg")
 	}
@@ -436,8 +436,8 @@ func (c *WsConnection) SendMsg(msgID uint32, data []byte) error {
 
 // SendBuffMsg sends BuffMsg
 func (c *WsConnection) SendBuffMsg(msgID uint32, data []byte) error {
-	c.msgLock.RLock()
-	defer c.msgLock.RUnlock()
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 
 	if c.msgBuffChan == nil {
 		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
