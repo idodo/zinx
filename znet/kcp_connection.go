@@ -59,7 +59,7 @@ type KcpConnection struct {
 
 	// Lock for user message reception and transmission
 	// (用户收发消息的Lock)
-	msgLock sync.RWMutex
+	msgLock sync.Mutex
 
 	// Connection properties
 	// (链接属性)
@@ -118,6 +118,9 @@ type KcpConnection struct {
 
 	// Close callback mutex
 	closeCallbackMutex sync.RWMutex
+
+	// Init msgBuffChan once (初始化发送缓冲区，只初始化一次的控制变量)
+	sendBufferOnce *sync.Once
 }
 
 // newKcpServerConn :for Server, method to create a Server-side connection with Server-specific properties
@@ -366,16 +369,16 @@ func (c *KcpConnection) Send(data []byte) error {
 }
 
 func (c *KcpConnection) SendToQueue(data []byte) error {
-	c.msgLock.Lock()
-	defer c.msgLock.Unlock()
 
 	if c.msgBuffChan == nil {
-		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
-		// Start a Goroutine to write data back to the client
-		// This method only reads data from the MsgBuffChan without allocating memory or starting a Goroutine
-		// (开启用于写回客户端数据流程的Goroutine
-		// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
-		go c.StartWriter()
+		c.sendBufferOnce.Do(func() {
+			c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
+			// Start a Goroutine to write data back to the client
+			// This method only reads data from the MsgBuffChan without allocating memory or starting a Goroutine
+			// (开启用于写回客户端数据流程的Goroutine
+			// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
+			go c.StartWriter()
+		})
 	}
 
 	idleTimeout := time.NewTimer(5 * time.Millisecond)
@@ -422,34 +425,12 @@ func (c *KcpConnection) SendMsg(msgID uint32, data []byte) error {
 }
 
 func (c *KcpConnection) SendBuffMsg(msgID uint32, data []byte) error {
-	if c.isClosed() {
-		return errors.New("connection closed when send buff msg")
-	}
-	if c.msgBuffChan == nil {
-		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
-		// Start a Goroutine to write data back to the client
-		// This method only reads data from the MsgBuffChan without allocating memory or starting a Goroutine
-		// (开启用于写回客户端数据流程的Goroutine
-		// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
-		go c.StartWriter()
-	}
-
-	idleTimeout := time.NewTimer(5 * time.Millisecond)
-	defer idleTimeout.Stop()
-
 	msg, err := c.packet.Pack(zpack.NewMsgPackage(msgID, data))
 	if err != nil {
 		zlog.Ins().ErrorF("Pack error msg ID = %d", msgID)
 		return errors.New("Pack error msg ")
 	}
-
-	// send timeout
-	select {
-	case <-idleTimeout.C:
-		return errors.New("send buff msg timeout")
-	case c.msgBuffChan <- msg:
-		return nil
-	}
+	return c.SendToQueue(msg)
 }
 
 func (c *KcpConnection) SetProperty(key string, value interface{}) {

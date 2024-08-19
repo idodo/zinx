@@ -110,6 +110,9 @@ type WsConnection struct {
 
 	//auth request
 	req *http.Request
+
+	// Init msgBuffChan once (初始化发送缓冲区，只初始化一次的控制变量)
+	sendBufferOnce *sync.Once
 }
 
 // newServerConn: for Server, a method to create a connection with Server characteristics
@@ -119,16 +122,17 @@ type WsConnection struct {
 func newWebsocketConn(server ziface.IServer, conn *websocket.Conn, connID uint64, authReq *http.Request) ziface.IConnection {
 	// Initialize Conn properties (初始化Conn属性)
 	c := &WsConnection{
-		conn:        conn,
-		connID:      connID,
-		connIdStr:   strconv.FormatUint(connID, 10),
-		isClosed:    false,
-		msgBuffChan: nil,
-		property:    nil,
-		name:        server.ServerName(),
-		localAddr:   conn.LocalAddr().String(),
-		remoteAddr:  conn.RemoteAddr().String(),
-		req:         authReq,
+		conn:           conn,
+		connID:         connID,
+		connIdStr:      strconv.FormatUint(connID, 10),
+		isClosed:       false,
+		msgBuffChan:    nil,
+		property:       nil,
+		name:           server.ServerName(),
+		localAddr:      conn.LocalAddr().String(),
+		remoteAddr:     conn.RemoteAddr().String(),
+		req:            authReq,
+		sendBufferOnce: &sync.Once{},
 	}
 
 	lengthField := server.GetLengthField()
@@ -375,16 +379,16 @@ func (c *WsConnection) SendTextMessage(data []byte) error {
 }
 
 func (c *WsConnection) SendToQueue(data []byte) error {
-	c.msgLock.Lock()
-	defer c.msgLock.Unlock()
 
 	if c.msgBuffChan == nil {
-		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
-		// Start a goroutine for writing data back to the client,
-		// which only reads data from MsgBuffChan and hasn't allocated memory or started the coroutine until SendBuffMsg is called
-		// (开启用于写回客户端数据流程的Goroutine
-		// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
-		go c.StartWriter()
+		c.sendBufferOnce.Do(func() {
+			c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
+			// Start a goroutine for writing data back to the client,
+			// which only reads data from MsgBuffChan and hasn't allocated memory or started the coroutine until SendBuffMsg is called
+			// (开启用于写回客户端数据流程的Goroutine
+			// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
+			go c.StartWriter()
+		})
 	}
 
 	idleTimeout := time.NewTimer(5 * time.Millisecond)
@@ -436,25 +440,6 @@ func (c *WsConnection) SendMsg(msgID uint32, data []byte) error {
 
 // SendBuffMsg sends BuffMsg
 func (c *WsConnection) SendBuffMsg(msgID uint32, data []byte) error {
-	c.msgLock.Lock()
-	defer c.msgLock.Unlock()
-
-	if c.msgBuffChan == nil {
-		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
-		// Start the Goroutine for writing back to the client data stream
-		// This method only reads data from MsgBuffChan, allocating memory and starting Goroutine without calling SendBuffMsg
-		// (开启用于写回客户端数据流程的Goroutine
-		// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
-		go c.StartWriter()
-	}
-
-	idleTimeout := time.NewTimer(5 * time.Millisecond)
-	defer idleTimeout.Stop()
-
-	if c.isClosed == true {
-		return errors.New("WsConnection closed when send buff msg")
-	}
-
 	// Package data and send
 	// (将data封包，并且发送)
 	msg, err := c.packet.Pack(zpack.NewMsgPackage(msgID, data))
@@ -462,14 +447,7 @@ func (c *WsConnection) SendBuffMsg(msgID uint32, data []byte) error {
 		zlog.Ins().ErrorF("Pack error msg ID = %d", msgID)
 		return errors.New("Pack error msg ")
 	}
-
-	// Send timeout
-	select {
-	case <-idleTimeout.C:
-		return errors.New("send buff msg timeout")
-	case c.msgBuffChan <- msg:
-		return nil
-	}
+	return c.SendToQueue(msg)
 }
 
 func (c *WsConnection) SetProperty(key string, value interface{}) {

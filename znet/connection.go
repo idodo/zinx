@@ -117,6 +117,9 @@ type Connection struct {
 	// msgLock is used for locking when users send and receive messages.
 	// (用户收发消息的Lock)
 	msgLock sync.Mutex
+
+	// Init msgBuffChan once (初始化发送缓冲区，只初始化一次的控制变量)
+	sendBufferOnce *sync.Once
 }
 
 // newServerConn :for Server, method to create a Server-side connection with Server-specific properties
@@ -371,12 +374,14 @@ func (c *Connection) Send(data []byte) error {
 
 func (c *Connection) SendToQueue(data []byte) error {
 	if c.msgBuffChan == nil && c.setStartWriterFlag() {
-		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
-		// Start a Goroutine to write data back to the client
-		// This method only reads data from the MsgBuffChan without allocating memory or starting a Goroutine
-		// (开启用于写回客户端数据流程的Goroutine
-		// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
-		go c.StartWriter()
+		c.sendBufferOnce.Do(func() {
+			c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
+			// Start a Goroutine to write data back to the client
+			// This method only reads data from the MsgBuffChan without allocating memory or starting a Goroutine
+			// (开启用于写回客户端数据流程的Goroutine
+			// 此方法只读取MsgBuffChan中的数据没调用SendBuffMsg可以分配内存和启用协程)
+			go c.StartWriter()
+		})
 	}
 
 	idleTimeout := time.NewTimer(5 * time.Millisecond)
