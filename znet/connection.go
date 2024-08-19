@@ -113,6 +113,10 @@ type Connection struct {
 
 	// Close callback mutex
 	closeCallbackMutex sync.RWMutex
+
+	// msgLock is used for locking when users send and receive messages.
+	// (用户收发消息的Lock)
+	msgLock sync.Mutex
 }
 
 // newServerConn :for Server, method to create a Server-side connection with Server-specific properties
@@ -350,6 +354,8 @@ func (c *Connection) LocalAddr() net.Addr {
 }
 
 func (c *Connection) Send(data []byte) error {
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 	if c.isClosed() == true {
 		return errors.New("connection closed when send msg")
 	}
@@ -364,7 +370,6 @@ func (c *Connection) Send(data []byte) error {
 }
 
 func (c *Connection) SendToQueue(data []byte) error {
-
 	if c.msgBuffChan == nil && c.setStartWriterFlag() {
 		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
 		// Start a Goroutine to write data back to the client
@@ -579,6 +584,6 @@ func (s *Connection) GetRequest() *http.Request {
 	panic("not implemented")
 }
 
-func (s *Connection) SendTextMessage(data []byte) error{
+func (s *Connection) SendTextMessage(data []byte) error {
 	panic("not implemented")
 }

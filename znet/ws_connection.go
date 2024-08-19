@@ -359,8 +359,8 @@ func (c *WsConnection) Send(data []byte) error {
 }
 
 func (c *WsConnection) SendTextMessage(data []byte) error {
-	c.msgLock.RLock()
-	defer c.msgLock.RUnlock()
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 	if c.isClosed == true {
 		return errors.New("WsConnection closed when send msg")
 	}
