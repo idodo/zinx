@@ -137,4 +137,8 @@ func UserConfToGlobal(config *Config) {
 		GlobalObject.KcpFecParityShards = config.KcpFecParityShards
 	}
 
+	if config.WsURLPath != "" {
+		GlobalObject.WsURLPath = config.WsURLPath
+	}
+
 }
