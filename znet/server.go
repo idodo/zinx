@@ -314,7 +314,7 @@ func (s *Server) ListenTcpConn() {
 }
 
 func (s *Server) ListenWebsocketConn() {
-	zlog.Ins().InfoF("[START] WEBSOCKET Server name: %s,listener at IP: %s, Port %d is starting", s.Name, s.IP, s.WsPort)
+	zlog.Ins().InfoF("[START] WEBSOCKET Server name: %s,listener at IP: %s, Port %d is, URLPath:%s starting", s.Name, s.IP, s.WsPort, s.WsURLPath)
 
 	http.HandleFunc(s.WsURLPath, func(w http.ResponseWriter, r *http.Request) {
 		// 1. Check if the server has reached the maximum allowed number of connections
