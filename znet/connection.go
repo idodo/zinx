@@ -474,6 +474,9 @@ func (c *Connection) finalizer() {
 	// (如果用户注册了该链接的	关闭回调业务，那么在此刻应该显示调用)
 	c.callOnConnStop()
 
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
+
 	// Stop the heartbeat detector associated with the connection
 	if c.hc != nil {
 		c.hc.Stop()

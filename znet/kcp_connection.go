@@ -350,8 +350,8 @@ func (c *KcpConnection) LocalAddr() net.Addr {
 }
 
 func (c *KcpConnection) Send(data []byte) error {
-	c.msgLock.RLock()
-	defer c.msgLock.RUnlock()
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 	if c.isClosed() {
 		return errors.New("connection closed when send msg")
 	}
@@ -366,8 +366,8 @@ func (c *KcpConnection) Send(data []byte) error {
 }
 
 func (c *KcpConnection) SendToQueue(data []byte) error {
-	c.msgLock.RLock()
-	defer c.msgLock.RUnlock()
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
 
 	if c.msgBuffChan == nil {
 		c.msgBuffChan = make(chan []byte, zconf.GlobalObject.MaxMsgChanLen)
@@ -667,7 +667,6 @@ func (s *KcpConnection) GetRequest() *http.Request {
 	panic("not implemented")
 }
 
-func (s *KcpConnection) SendTextMessage(data []byte) error{
+func (s *KcpConnection) SendTextMessage(data []byte) error {
 	panic("not implemented")
 }
-
