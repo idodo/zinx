@@ -108,6 +108,7 @@ type Config struct {
 	*/
 	CertFile       string // The name of the certificate file. If it is empty, TLS encryption is not enabled.(证书文件名称 默认"")
 	PrivateKeyFile string // The name of the private key file. If it is empty, TLS encryption is not enabled.(私钥文件名称 默认"" --如果没有设置证书和私钥文件，则不启用TLS加密)
+	WsURLPath      string
 }
 
 /*
@@ -243,6 +244,7 @@ func init() {
 		KcpSendWindow:      32,
 		KcpFecDataShards:   0,
 		KcpFecParityShards: 0,
+		WsURLPath:          "/",
 	}
 
 	// Note: Load some user-configured parameters from the configuration file.

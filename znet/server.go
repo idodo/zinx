@@ -87,6 +87,9 @@ type Server struct {
 
 	// connection id
 	cID uint64
+
+	// ws http request path(websocket默认连接地址的路径）
+	WsURLPath string
 }
 
 type KcpConfig struct {
@@ -139,6 +142,7 @@ func newServerWithConfig(config *zconf.Config, ipVersion string, opts ...Option)
 		RequestPoolMode:  config.RequestPoolMode,
 		ConnMgr:          newConnManager(),
 		exitChan:         nil,
+		WsURLPath:        config.WsURLPath,
 		// Default to using Zinx's TLV data pack format
 		// (默认使用zinx的TLV封包方式)
 		packet:  zpack.Factory().NewPack(ziface.ZinxDataPack),
@@ -311,7 +315,8 @@ func (s *Server) ListenTcpConn() {
 
 func (s *Server) ListenWebsocketConn() {
 	zlog.Ins().InfoF("[START] WEBSOCKET Server name: %s,listener at IP: %s, Port %d is starting", s.Name, s.IP, s.WsPort)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+	http.HandleFunc(s.WsURLPath, func(w http.ResponseWriter, r *http.Request) {
 		// 1. Check if the server has reached the maximum allowed number of connections
 		// (设置服务器最大连接控制,如果超过最大连接，则等待)
 		if s.ConnMgr.Len() >= zconf.GlobalObject.MaxConn {
