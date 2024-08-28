@@ -229,7 +229,7 @@ func (c *Connection) StartReader() {
 
 	//Reduce buffer allocation times to improve efficiency
 	// add by ray 2023-02-03
-	buffer := make([]byte, zconf.GlobalObject.IOReadBuffSize)
+	//buffer := make([]byte, zconf.GlobalObject.IOReadBuffSize)
 
 	for {
 		select {
@@ -239,6 +239,7 @@ func (c *Connection) StartReader() {
 
 			// read data from the connection's IO into the memory buffer
 			// (从conn的IO中读取数据到内存缓冲buffer中)
+			buffer := make([]byte, zconf.GlobalObject.IOReadBuffSize)
 			n, err := c.conn.Read(buffer)
 			if err != nil {
 				zlog.Ins().ErrorF("read msg head [read datalen=%d], error = %s", n, err)
