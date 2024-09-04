@@ -111,9 +111,7 @@ type Config struct {
 	WsURLPath      string
 }
 
-/*
-Define a global object.(定义一个全局的对象)
-*/
+// GlobalObject Define a global object.(定义一个全局的对象)
 var GlobalObject *Config
 
 // PathExists Check if a file exists.(判断一个文件是否存在)
