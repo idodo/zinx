@@ -80,6 +80,9 @@ type Server struct {
 	// websocket
 	upgrader *websocket.Upgrader
 
+	// response header
+	responseHeader http.Header
+
 	// websocket connection authentication
 	websocketAuth func(r *http.Request) error
 
@@ -343,7 +346,8 @@ func (s *Server) ListenWebsocketConn() {
 		}
 		// 4. Upgrade the connection to a websocket connection
 		// (升级成 websocket 连接)
-		conn, err := s.upgrader.Upgrade(w, r, nil)
+
+		conn, err := s.upgrader.Upgrade(w, r, s.responseHeader)
 		if err != nil {
 			zlog.Ins().ErrorF("new websocket err:%v", err)
 			w.WriteHeader(500)
@@ -604,6 +608,10 @@ func (s *Server) AddInterceptor(interceptor ziface.IInterceptor) {
 
 func (s *Server) SetWebsocketAuth(f func(r *http.Request) error) {
 	s.websocketAuth = f
+}
+
+func (s *Server) SetWebsocketRespHeader(header http.Header) {
+	s.responseHeader = header
 }
 
 func (s *Server) ServerName() string {

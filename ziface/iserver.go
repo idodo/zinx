@@ -79,4 +79,7 @@ type IServer interface {
 
 	// Get the server name (获取服务器名称)
 	ServerName() string
+
+	// 添加websocket handshack前的 http header
+	SetWebsocketRespHeader(header http.Header)
 }
