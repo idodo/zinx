@@ -279,7 +279,7 @@ func (s *Server) ListenTcpConn() {
 			// 3.1 Set the maximum connection control for the server. If it exceeds the maximum connection, wait.
 			// (设置服务器最大连接控制,如果超过最大连接，则等待)
 			if s.ConnMgr.Len() >= zconf.GlobalObject.MaxConn {
-				zlog.Ins().InfoF("Exceeded the maxConnNum:%d, Wait:%d", zconf.GlobalObject.MaxConn, AcceptDelay.duration)
+				zlog.Ins().ErrorF("Exceeded the maxConnNum:%d, Wait:%d", zconf.GlobalObject.MaxConn, AcceptDelay.duration)
 				AcceptDelay.Delay()
 				continue
 			}

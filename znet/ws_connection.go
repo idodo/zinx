@@ -362,6 +362,20 @@ func (c *WsConnection) Send(data []byte) error {
 
 	return nil
 }
+func (c *WsConnection) SendWithTimeout(data []byte, duration time.Duration) error {
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
+	if c.isClosed == true {
+		return errors.New("WsConnection closed when send msg")
+	}
+	c.conn.SetWriteDeadline(time.Now().Add(duration))
+	err := c.conn.WriteMessage(websocket.BinaryMessage, data)
+	if err != nil {
+		zlog.Ins().ErrorF("SendMsg err data = %+v, err = %+v", data, err)
+		return err
+	}
+	return nil
+}
 
 func (c *WsConnection) SendTextMessage(data []byte) error {
 	c.msgLock.Lock()
@@ -585,29 +599,29 @@ func (c *WsConnection) GetMsgHandler() ziface.IMsgHandle {
 	return c.msgHandler
 }
 
-func (s *WsConnection) AddCloseCallback(handler, key interface{}, f func()) {
-	if s.isClosed {
+func (c *WsConnection) AddCloseCallback(handler, key interface{}, f func()) {
+	if c.isClosed {
 		return
 	}
-	s.closeCallbackMutex.Lock()
-	defer s.closeCallbackMutex.Unlock()
-	s.closeCallback.Add(handler, key, f)
+	c.closeCallbackMutex.Lock()
+	defer c.closeCallbackMutex.Unlock()
+	c.closeCallback.Add(handler, key, f)
 }
 
-func (s *WsConnection) RemoveCloseCallback(handler, key interface{}) {
-	if s.isClosed {
+func (c *WsConnection) RemoveCloseCallback(handler, key interface{}) {
+	if c.isClosed {
 		return
 	}
-	s.closeCallbackMutex.Lock()
-	defer s.closeCallbackMutex.Unlock()
-	s.closeCallback.Remove(handler, key)
+	c.closeCallbackMutex.Lock()
+	defer c.closeCallbackMutex.Unlock()
+	c.closeCallback.Remove(handler, key)
 }
 
-func (s *WsConnection) InvokeCloseCallbacks() {
-	s.closeCallbackMutex.RLock()
-	defer s.closeCallbackMutex.RUnlock()
-	s.closeCallback.Invoke()
+func (c *WsConnection) InvokeCloseCallbacks() {
+	c.closeCallbackMutex.RLock()
+	defer c.closeCallbackMutex.RUnlock()
+	c.closeCallback.Invoke()
 }
-func (s *WsConnection) GetRequest() *http.Request {
-	return s.req
+func (c *WsConnection) GetRequest() *http.Request {
+	return c.req
 }

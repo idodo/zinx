@@ -368,6 +368,22 @@ func (c *KcpConnection) Send(data []byte) error {
 	return nil
 }
 
+func (c *KcpConnection) SendWithTimeout(data []byte, duration time.Duration) error {
+	c.msgLock.Lock()
+	defer c.msgLock.Unlock()
+	if c.isClosed() {
+		return errors.New("connection closed when send msg")
+	}
+	c.conn.SetWriteDeadline(time.Now().Add(duration))
+	_, err := c.conn.Write(data)
+	if err != nil {
+		zlog.Ins().ErrorF("SendMsg err data = %+v, err = %+v", data, err)
+		return err
+	}
+
+	return nil
+}
+
 func (c *KcpConnection) SendToQueue(data []byte) error {
 
 	if c.msgBuffChan == nil {

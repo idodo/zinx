@@ -7,6 +7,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -38,9 +39,9 @@ type IConnection interface {
 	LocalAddrString() string    // Get the local address information of the connection as a string
 	RemoteAddrString() string   // Get the remote address information of the connection as a string
 
-	Send(data []byte) error        // Send data directly to the remote TCP client (without buffering)
-	SendTextMessage(data []byte) error  // WebSocket Send text message directly
-	SendToQueue(data []byte) error // Send data to the message queue to be sent to the remote TCP client later
+	Send(data []byte) error            // Send data directly to the remote TCP client (without buffering)
+	SendTextMessage(data []byte) error // WebSocket Send text message directly
+	SendToQueue(data []byte) error     // Send data to the message queue to be sent to the remote TCP client later
 
 	// Send Message data directly to the remote TCP client (without buffering)
 	// 直接将Message数据发送数据给远程的TCP客户端(无缓冲)
@@ -61,4 +62,5 @@ type IConnection interface {
 	InvokeCloseCallbacks()
 	// Trigger the close callback function (触发关闭回调函数，独立协程完成)
 	GetRequest() *http.Request
+	SendWithTimeout(data []byte, duration time.Duration) error
 }
