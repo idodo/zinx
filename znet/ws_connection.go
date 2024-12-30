@@ -429,11 +429,6 @@ func (c *WsConnection) SendToQueue(data []byte) error {
 // SendMsg directly sends the Message data to the remote TCP client.
 // (直接将Message数据发送数据给远程的TCP客户端)
 func (c *WsConnection) SendMsg(msgID uint32, data []byte) error {
-	c.msgLock.Lock()
-	defer c.msgLock.Unlock()
-	if c.isClosed == true {
-		return errors.New("WsConnection closed when send msg")
-	}
 
 	// Package data and send
 	// (将data封包，并且发送)
@@ -443,8 +438,28 @@ func (c *WsConnection) SendMsg(msgID uint32, data []byte) error {
 		return errors.New("Pack error msg ")
 	}
 
+	err = c.Send(msg)
+	if err != nil {
+		zlog.Ins().ErrorF("SendMsg err msg ID = %d, data = %+v, err = %+v", msgID, string(msg), err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *WsConnection) SendMsgWithTimeout(msgID uint32, data []byte, duration time.Duration) error {
+	if c.isClosed == true {
+		return errors.New("WsConnection closed when send msg")
+	}
+	// Package data and send
+	// (将data封包，并且发送)
+	msg, err := c.packet.Pack(zpack.NewMsgPackage(msgID, data))
+	if err != nil {
+		zlog.Ins().ErrorF("Pack error msg ID = %d", msgID)
+		return errors.New("Pack error msg ")
+	}
 	// Write back to the client
-	err = c.conn.WriteMessage(websocket.BinaryMessage, msg)
+	err = c.SendWithTimeout(msg, duration)
 	if err != nil {
 		zlog.Ins().ErrorF("SendMsg err msg ID = %d, data = %+v, err = %+v", msgID, string(msg), err)
 		return err

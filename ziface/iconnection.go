@@ -63,4 +63,5 @@ type IConnection interface {
 	// Trigger the close callback function (触发关闭回调函数，独立协程完成)
 	GetRequest() *http.Request
 	SendWithTimeout(data []byte, duration time.Duration) error
+	SendMsgWithTimeout(msgID uint32, data []byte, duration time.Duration) error
 }

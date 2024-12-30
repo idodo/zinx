@@ -440,6 +440,26 @@ func (c *KcpConnection) SendMsg(msgID uint32, data []byte) error {
 	return nil
 }
 
+func (c *KcpConnection) SendMsgWithTimeout(msgID uint32, data []byte, duration time.Duration) error {
+	if c.isClosed() {
+		return errors.New("connection closed when send msg")
+	}
+	// Pack data and send it
+	msg, err := c.packet.Pack(zpack.NewMsgPackage(msgID, data))
+	if err != nil {
+		zlog.Ins().ErrorF("Pack error msg ID = %d", msgID)
+		return errors.New("Pack error msg ")
+	}
+
+	err = c.SendWithTimeout(msg, duration)
+	if err != nil {
+		zlog.Ins().ErrorF("SendMsg err msg ID = %d, data = %+v, err = %+v", msgID, string(msg), err)
+		return err
+	}
+
+	return nil
+}
+
 func (c *KcpConnection) SendBuffMsg(msgID uint32, data []byte) error {
 	msg, err := c.packet.Pack(zpack.NewMsgPackage(msgID, data))
 	if err != nil {
