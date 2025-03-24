@@ -459,8 +459,12 @@ func (c *Connection) SendMsgWithTimeout(msgID uint32, data []byte, duration time
 		zlog.Ins().ErrorF("Pack error msg ID = %d", msgID)
 		return errors.New("Pack error msg ")
 	}
-
-	err = c.SendWithTimeout(msg, duration)
+	if duration == 0 {
+		zlog.Ins().ErrorF("SendMsg err with timeout but duration is zero!")
+		err = c.Send(msg)
+	} else {
+		err = c.SendWithTimeout(msg, duration)
+	}
 	if err != nil {
 		zlog.Ins().ErrorF("SendMsg err msg ID = %d, data = %+v, err = %+v", msgID, string(msg), err)
 		return err
