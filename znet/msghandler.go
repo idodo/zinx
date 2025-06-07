@@ -3,6 +3,7 @@ package znet
 import (
 	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/aceld/zinx/zconf"
@@ -201,6 +202,7 @@ func (mh *MsgHandle) doMsgHandler(request ziface.IRequest, workerID int) {
 	defer func() {
 		if err := recover(); err != nil {
 			zlog.Ins().ErrorF("workerID: %d doMsgHandler panic: %v", workerID, err)
+			debug.PrintStack()
 		}
 	}()
 
