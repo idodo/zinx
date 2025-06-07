@@ -201,7 +201,7 @@ func (mh *MsgHandle) doFuncHandler(request ziface.IFuncRequest, workerID int) {
 func (mh *MsgHandle) doMsgHandler(request ziface.IRequest, workerID int) {
 	defer func() {
 		if err := recover(); err != nil {
-			zlog.Ins().ErrorF("workerID: %d doMsgHandler panic: %v", workerID, err)
+			zlog.Ins().ErrorF("workerID: %d doMsgHandler panic: %v, stack:%s", workerID, err, string(debug.Stack()))
 			debug.PrintStack()
 		}
 	}()
